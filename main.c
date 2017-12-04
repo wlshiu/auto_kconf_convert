@@ -8,6 +8,26 @@
 static char *g_pInName = 0;
 static char *g_pOutName = 0;
 
+#if 0 //ndef strncasecmp
+static int strncasecmp(const char *s1, const char *s2, size_t n)
+{
+    int ret;
+
+    if (n == 0)
+        return 0;
+
+    while ((ret = ((unsigned char) tolower (*s1)
+                   - (unsigned char) tolower (*s2))) == 0
+            && *s1++)
+    {
+        if (--n == 0)
+            return 0;
+        ++s2;
+    }
+    return ret;
+}
+#endif
+
 static int
 _post_read(unsigned char *pBuf, int buf_size)
 {
@@ -138,7 +158,7 @@ int main(int argc, char **argv)
 
                 // fprintf(stderr, "%s:%s\n", pName, pValue);
 
-                if( !strncmp(pValue, "y", 1) || !strncmp(pValue, "yes", 3) )
+                if( !strncasecmp(pValue, "Y", 1) || !strncasecmp(pValue, "YES", 3) )
                     fprintf(fout, "#define %s 1\n", pName);
                 else
                     fprintf(fout, "#define %s %s\n", pName, pValue);
