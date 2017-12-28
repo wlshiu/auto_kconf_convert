@@ -7,6 +7,7 @@
 
 static char *g_pInName = 0;
 static char *g_pOutName = 0;
+static char *g_pOutCMakeName = 0;
 
 #if 0 //ndef strncasecmp
 static int strncasecmp(const char *s1, const char *s2, size_t n)
@@ -45,7 +46,8 @@ static void usage(char **argv)
     static char str[] =
         "Usage: %s [options]\n"
         "       -i: input config file\n"
-        "       -o: output header file\n"
+        "       -oh: output header file\n"
+        "       -om: output cmake file\n"
         "\n";
 
     fprintf(stderr, str, argv[0]);
@@ -63,9 +65,12 @@ static void getparams(int argc, char **argv)
         if (!strncmp(argv[0], "-i", strlen("-i"))) {
             argv++; argc--;
             g_pInName = argv[0];
-        } else if (!strncmp(argv[0], "-o", strlen("-o"))) {
+        } else if (!strncmp(argv[0], "-oh", strlen("-oh"))) {
             argv++; argc--;
             g_pOutName = argv[0];
+        } else if (!strncmp(argv[0], "-om", strlen("-om"))) {
+            argv++; argc--;
+            g_pOutCMakeName = argv[0];
         } else {
             err("unknown option %s\n", argv[0]);
         }
@@ -76,7 +81,7 @@ static void getparams(int argc, char **argv)
 int main(int argc, char **argv)
 {
     partial_read_t  hReader = {0};
-    FILE            *fin = 0, *fout = 0;
+    FILE            *fin = 0, *fout = 0, *foutm = 0;
 
     getparams(argc, argv);
     printf("%s, %s\n", g_pInName, g_pOutName);
@@ -90,6 +95,16 @@ int main(int argc, char **argv)
         }
 
         fprintf(fout, "/**\n *  Automatically generated file; DO NOT EDIT.\n */\n");
+
+        if( g_pOutCMakeName )
+        {
+            if( !(foutm = fopen(g_pOutCMakeName, "w")) )
+            {
+                err("open %s fail \n", g_pOutCMakeName);
+                break;
+            }
+            fprintf(foutm, "#\n#  Automatically generated file; DO NOT EDIT.\n#\n");
+        }
 
         // open input
         if( !(fin = fopen(g_pInName, "r")) )
@@ -159,9 +174,17 @@ int main(int argc, char **argv)
                 // fprintf(stderr, "%s:%s\n", pName, pValue);
 
                 if( !strncasecmp(pValue, "Y", 1) || !strncasecmp(pValue, "YES", 3) )
+                {
                     fprintf(fout, "#define %s 1\n", pName);
+                    if( foutm )
+                        fprintf(foutm, "set(%s TRUE)\n", pName);
+                }
                 else
+                {
                     fprintf(fout, "#define %s %s\n", pName, pValue);
+                    if( foutm )
+                        fprintf(foutm, "set(%s %s)\n", pName, pValue);
+                }
             }
         }
 
@@ -170,6 +193,7 @@ int main(int argc, char **argv)
     if( hReader.pBuf )     free(hReader.pBuf);
     if( fin )   fclose(fin);
     if( fout )  fclose(fout);
+    if( foutm ) fclose(foutm);
 
     return 0;
 }
