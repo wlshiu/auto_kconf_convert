@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "partial_read.h"
 
 #define err(st, args...)        do{fprintf(stderr, "%s[%u] " st, __func__, __LINE__, ##args); }while(0)
@@ -41,9 +42,67 @@ _post_read(unsigned char *pBuf, int buf_size)
     return 0;
 }
 
+static void gen_uid(char *pGuidStr, int GuidStrLen)
+{
+    char    *pDefStrTable = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    char    *pActStrTable = 0;
+
+    do {
+        int         i;
+        size_t      table_len = strlen(pDefStrTable);
+        if( !(pActStrTable = malloc(table_len + 1)) )
+        {
+            err("malloc (%d) fail !!\n", table_len + 1);
+            break;
+        }
+        memset(pActStrTable, 0x0, table_len + 1);
+        memcpy(pActStrTable, pDefStrTable, table_len);
+
+        for(i = 0; i < table_len - 1; i++)
+        {
+            int     j = rand() % (table_len  - i);
+            char    tmp = pActStrTable[i];
+
+            pActStrTable[i] = pActStrTable[j];
+            pActStrTable[j] = tmp;
+        }
+
+        //Data1 - 8 characters.
+        for(i = 0; i < 8; i++, pGuidStr++)
+            *pGuidStr = pActStrTable[rand() % table_len];
+
+        //Data2 - 4 characters.
+        *pGuidStr++ = '_';
+        for(i = 0; i < 4; i++, pGuidStr++)
+            *pGuidStr = pActStrTable[rand() % table_len];
+
+        //Data3 - 4 characters.
+        *pGuidStr++ = '_';
+        for(i = 0; i < 4; i++, pGuidStr++)
+            *pGuidStr = pActStrTable[rand() % table_len];
+
+        //Data4 - 4 characters.
+        *pGuidStr++ = '_';
+        for(i = 0; i < 4; i++, pGuidStr++)
+            *pGuidStr = pActStrTable[rand() % table_len];
+
+        //Data5 - 12 characters.
+        *pGuidStr++ = '_';
+        for(i = 0; i < 12; i++, pGuidStr++)
+            *pGuidStr = pActStrTable[rand() % table_len];
+
+        *pGuidStr = L'\0';
+
+    }while(0);
+
+    if( pActStrTable )      free(pActStrTable);
+    return;
+}
+
 static void usage(char **argv)
 {
     static char str[] =
+        "Copyright (c) 2018~ Wei-Lun Hsu. All rights reserved.\n"
         "Usage: %s [options]\n"
         "       -i: input config file\n"
         "       -oh: output header file\n"
@@ -94,7 +153,25 @@ int main(int argc, char **argv)
             break;
         }
 
-        fprintf(fout, "/**\n *  Automatically generated file; DO NOT EDIT.\n */\n");
+        { // uuid
+            char    filename[128] = {0};
+            char    uuid[128] = {0};
+            char    *pTmp = 0;
+
+            srand((unsigned int)time(NULL));
+
+            snprintf(filename, 128, "%s", g_pOutName);
+            pTmp = strchr(filename, '.');
+            if( pTmp )      *pTmp = '\0';
+
+            gen_uid(uuid, 128);
+
+            fprintf(fout, "#ifndef __%s_H_%s__\n", filename, uuid);
+            fprintf(fout, "#define __%s_H_%s__\n\n", filename, uuid);
+        }
+
+        fprintf(fout, "#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n");
+        // fprintf(fout, "/**\n *  Automatically generated file; DO NOT EDIT.\n */\n");
 
         if( g_pOutCMakeName )
         {
@@ -103,7 +180,7 @@ int main(int argc, char **argv)
                 err("open %s fail \n", g_pOutCMakeName);
                 break;
             }
-            fprintf(foutm, "#\n#  Automatically generated file; DO NOT EDIT.\n#\n");
+            // fprintf(foutm, "#\n#  Automatically generated file; DO NOT EDIT.\n#\n");
         }
 
         // open input
@@ -151,8 +228,25 @@ int main(int argc, char **argv)
                 while( *pAct_str == '\t' || *pAct_str == ' ' )
                     pAct_str++;
 
-                if( pAct_str[0] == '#' || pAct_str[0] == '\n' || !strlen(pAct_str) )
+                if( pAct_str[0] == '\n' || !strlen(pAct_str) )
+                {
+                    fprintf(fout, "\n");
+                    if( foutm )
+                        fprintf(foutm, "\n");
                     continue;
+                }
+
+                if( pAct_str[0] == '#' )
+                {
+                    if( !strstr(pAct_str, "is not set") )
+                    {
+                        fprintf(fout, "//%s\n", pAct_str + 1);
+                        if( foutm )
+                            fprintf(foutm, "%s\n", pAct_str);
+                    }
+
+                    continue;
+                }
 
                 pName  = conf_name;
                 pValue = conf_value ;
@@ -187,6 +281,8 @@ int main(int argc, char **argv)
                 }
             }
         }
+
+        fprintf(fout, "\n\n#ifdef __cplusplus\n}\n#endif\n\n");
 
     } while(0);
 
