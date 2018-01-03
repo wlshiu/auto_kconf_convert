@@ -9,6 +9,7 @@
 static char *g_pInName = 0;
 static char *g_pOutName = 0;
 static char *g_pOutCMakeName = 0;
+static char *g_pOutBatName = 0;
 
 #if 0 //ndef strncasecmp
 static int strncasecmp(const char *s1, const char *s2, size_t n)
@@ -107,6 +108,7 @@ static void usage(char **argv)
         "       -i: input config file\n"
         "       -oh: output header file\n"
         "       -om: output cmake file\n"
+        "       -ob: output batch file\n"
         "\n";
 
     fprintf(stderr, str, argv[0]);
@@ -130,6 +132,9 @@ static void getparams(int argc, char **argv)
         } else if (!strncmp(argv[0], "-om", strlen("-om"))) {
             argv++; argc--;
             g_pOutCMakeName = argv[0];
+        } else if (!strncmp(argv[0], "-ob", strlen("-ob"))) {
+            argv++; argc--;
+            g_pOutBatName = argv[0];
         } else {
             err("unknown option %s\n", argv[0]);
         }
@@ -140,10 +145,9 @@ static void getparams(int argc, char **argv)
 int main(int argc, char **argv)
 {
     partial_read_t  hReader = {0};
-    FILE            *fin = 0, *fout = 0, *foutm = 0;
+    FILE            *fin = 0, *fout = 0, *foutm = 0, *foutb = 0;
 
     getparams(argc, argv);
-    printf("%s, %s\n", g_pInName, g_pOutName);
 
     do {
         // open output
@@ -181,6 +185,15 @@ int main(int argc, char **argv)
                 break;
             }
             // fprintf(foutm, "#\n#  Automatically generated file; DO NOT EDIT.\n#\n");
+        }
+
+        if( g_pOutBatName )
+        {
+            if( !(foutb = fopen(g_pOutBatName, "w")) )
+            {
+                err("open %s fail \n", g_pOutBatName);
+                break;
+            }
         }
 
         // open input
@@ -272,12 +285,34 @@ int main(int argc, char **argv)
                     fprintf(fout, "#define %s 1\n", pName);
                     if( foutm )
                         fprintf(foutm, "set(%s TRUE)\n", pName);
+
+                    if( foutb )
+                        fprintf(foutb, "set %s=y\n", pName);
                 }
                 else
                 {
                     fprintf(fout, "#define %s %s\n", pName, pValue);
                     if( foutm )
                         fprintf(foutm, "set(%s %s)\n", pName, pValue);
+
+                    if( foutb )
+                    {
+                        char    buf[128] = {0};
+                        char    *pCur = 0;
+
+                        snprintf(buf, 128, "%s", pValue);
+                        pCur = strchr(buf, '\"');
+                        if( pCur )
+                        {
+                            pCur++;
+                            pValue = pCur;
+                            while( (pCur = strchr(pValue, '\"' )) )
+                                *pCur++ = '\0';
+
+                        }
+
+                        fprintf(foutb, "set %s=%s\n", pName, pValue);
+                    }
                 }
             }
         }
