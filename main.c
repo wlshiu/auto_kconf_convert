@@ -325,6 +325,7 @@ int main(int argc, char **argv)
     if( fin )   fclose(fin);
     if( fout )  fclose(fout);
     if( foutm ) fclose(foutm);
+    if( foutb ) fclose(foutb);
 
     return 0;
 }
