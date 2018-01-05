@@ -10,6 +10,7 @@ static char *g_pInName = 0;
 static char *g_pOutName = 0;
 static char *g_pOutCMakeName = 0;
 static char *g_pOutBatName = 0;
+static char *g_pOutShName = 0;
 
 #if 0 //ndef strncasecmp
 static int strncasecmp(const char *s1, const char *s2, size_t n)
@@ -109,6 +110,7 @@ static void usage(char **argv)
         "       -oh: output header file\n"
         "       -om: output cmake file\n"
         "       -ob: output batch file\n"
+        "       -os: output shell file\n"
         "\n";
 
     fprintf(stderr, str, argv[0]);
@@ -135,6 +137,9 @@ static void getparams(int argc, char **argv)
         } else if (!strncmp(argv[0], "-ob", strlen("-ob"))) {
             argv++; argc--;
             g_pOutBatName = argv[0];
+        } else if (!strncmp(argv[0], "-os", strlen("-os"))) {
+            argv++; argc--;
+            g_pOutShName = argv[0];
         } else {
             err("unknown option %s\n", argv[0]);
         }
@@ -145,7 +150,7 @@ static void getparams(int argc, char **argv)
 int main(int argc, char **argv)
 {
     partial_read_t  hReader = {0};
-    FILE            *fin = 0, *fout = 0, *foutm = 0, *foutb = 0;
+    FILE            *fin = 0, *fout = 0, *foutm = 0, *foutb = 0, *fouts = 0;
 
     getparams(argc, argv);
 
@@ -196,6 +201,17 @@ int main(int argc, char **argv)
             }
         }
 
+        if( g_pOutShName )
+        {
+            if( !(fouts = fopen(g_pOutShName, "w")) )
+            {
+                err("open %s fail \n", g_pOutShName);
+                break;
+            }
+
+            fprintf(fouts, "#!/bin/bash\n\n");
+        }
+
         // open input
         if( !(fin = fopen(g_pInName, "r")) )
         {
@@ -244,8 +260,10 @@ int main(int argc, char **argv)
                 if( pAct_str[0] == '\n' || !strlen(pAct_str) )
                 {
                     fprintf(fout, "\n");
-                    if( foutm )
-                        fprintf(foutm, "\n");
+                    if( foutm )     fprintf(foutm, "\n");
+                    if( foutb )     fprintf(foutb, "\n");
+                    if( fouts )     fprintf(fouts, "\n");
+
                     continue;
                 }
 
@@ -256,6 +274,12 @@ int main(int argc, char **argv)
                         fprintf(fout, "//%s\n", pAct_str + 1);
                         if( foutm )
                             fprintf(foutm, "%s\n", pAct_str);
+
+                        if( foutb )
+                            fprintf(foutb, "rem %s\n", pAct_str + 1);
+
+                        if( fouts )
+                            fprintf(fouts, "%s\n", pAct_str);
                     }
 
                     continue;
@@ -288,12 +312,18 @@ int main(int argc, char **argv)
 
                     if( foutb )
                         fprintf(foutb, "set %s=y\n", pName);
+
+                    if( fouts )
+                        fprintf(fouts, "%s=y\n", pName);
                 }
                 else
                 {
                     fprintf(fout, "#define %s %s\n", pName, pValue);
                     if( foutm )
                         fprintf(foutm, "set(%s %s)\n", pName, pValue);
+
+                    if( fouts )
+                        fprintf(fouts, "%s=%s\n", pName, pValue);
 
                     if( foutb )
                     {
@@ -306,9 +336,8 @@ int main(int argc, char **argv)
                         {
                             pCur++;
                             pValue = pCur;
-                            while( (pCur = strchr(pValue, '\"' )) )
+                            while( (pCur = strchr(pCur, '\"' )) )
                                 *pCur++ = '\0';
-
                         }
 
                         fprintf(foutb, "set %s=%s\n", pName, pValue);
@@ -317,7 +346,7 @@ int main(int argc, char **argv)
             }
         }
 
-        fprintf(fout, "\n\n#ifdef __cplusplus\n}\n#endif\n#endif\n\n");
+        fprintf(fout, "\n\n#ifdef __cplusplus\n}\n#endif\n\n#endif\n\n");
 
     } while(0);
 
@@ -326,6 +355,7 @@ int main(int argc, char **argv)
     if( fout )  fclose(fout);
     if( foutm ) fclose(foutm);
     if( foutb ) fclose(foutb);
+    if( fouts ) fclose(fouts);
 
     return 0;
 }
