@@ -317,7 +317,7 @@ int main(int argc, char **argv)
             }
         }
 
-        fprintf(fout, "\n\n#ifdef __cplusplus\n}\n#endif\n\n");
+        fprintf(fout, "\n\n#ifdef __cplusplus\n}\n#endif\n#endif\n\n");
 
     } while(0);
 
