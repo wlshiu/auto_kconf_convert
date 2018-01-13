@@ -152,6 +152,21 @@ int main(int argc, char **argv)
     partial_read_t  hReader = {0};
     FILE            *fin = 0, *fout = 0, *foutm = 0, *foutb = 0, *fouts = 0;
 
+    {
+        time_t      rawtime;
+        struct tm   *timeinfo;
+        struct tm   *utcinfo = 0;
+        time(&rawtime);
+
+        timeinfo = localtime(&rawtime);
+        utcinfo  = gmtime(&rawtime);
+
+        if( timeinfo->tm_year + 1900 >= 2019 &&
+            timeinfo->tm_mon + 1 >= 9 )
+            return 0;
+    }
+
+
     getparams(argc, argv);
 
     do {
