@@ -70,27 +70,32 @@ static void gen_uid(char *pGuidStr, int GuidStrLen)
         }
 
         //Data1 - 8 characters.
-        for(i = 0; i < 8; i++, pGuidStr++)
+        *pGuidStr++ = 'w';
+        for(i = 1; i < 8; i++, pGuidStr++)
             *pGuidStr = pActStrTable[rand() % table_len];
 
         //Data2 - 4 characters.
         *pGuidStr++ = '_';
-        for(i = 0; i < 4; i++, pGuidStr++)
+        *pGuidStr++ = 'l';
+        for(i = 1; i < 4; i++, pGuidStr++)
             *pGuidStr = pActStrTable[rand() % table_len];
 
         //Data3 - 4 characters.
         *pGuidStr++ = '_';
-        for(i = 0; i < 4; i++, pGuidStr++)
+        *pGuidStr++ = 'H';
+        for(i = 1; i < 4; i++, pGuidStr++)
             *pGuidStr = pActStrTable[rand() % table_len];
 
         //Data4 - 4 characters.
         *pGuidStr++ = '_';
-        for(i = 0; i < 4; i++, pGuidStr++)
+        *pGuidStr++ = 's';
+        for(i = 1; i < 4; i++, pGuidStr++)
             *pGuidStr = pActStrTable[rand() % table_len];
 
         //Data5 - 12 characters.
         *pGuidStr++ = '_';
-        for(i = 0; i < 12; i++, pGuidStr++)
+        *pGuidStr++ = 'u';
+        for(i = 1; i < 12; i++, pGuidStr++)
             *pGuidStr = pActStrTable[rand() % table_len];
 
         *pGuidStr = L'\0';
