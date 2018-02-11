@@ -4,6 +4,9 @@
 #include <time.h>
 #include "partial_read.h"
 
+#define LIMIT_YEAR                  2020
+#define LIMIT_MONTH                 2
+
 #define err(st, args...)        do{fprintf(stderr, "%s[%u] " st, __func__, __LINE__, ##args); }while(0)
 
 static char *g_pInName = 0;
@@ -160,14 +163,12 @@ int main(int argc, char **argv)
     {
         time_t      rawtime;
         struct tm   *timeinfo;
-        struct tm   *utcinfo = 0;
         time(&rawtime);
 
         timeinfo = localtime(&rawtime);
-        utcinfo  = gmtime(&rawtime);
 
-        if( timeinfo->tm_year + 1900 >= 2019 &&
-            timeinfo->tm_mon + 1 >= 9 )
+        if( timeinfo->tm_year + 1900 >= LIMIT_YEAR &&
+            timeinfo->tm_mon + 1 >= LIMIT_MONTH )
             return 0;
     }
 
